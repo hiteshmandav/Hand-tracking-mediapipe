@@ -38,18 +38,23 @@ class HandDetector():
                 self.mp_draw.draw_landmarks(frame, handLandmark , self.mp_hands.HAND_CONNECTIONS)
         # return
     
-    def findFingerPosition(self, frame):
-        # itrating on each point on hand
-        # for id, landmark in enumerate(handLandmark.landmark):
-        #     height,  width, channel = frame.shape
-        #     cx, cy = int(landmark.x * width), int(landmark.y * height)
-        #     if id == 8:
-        #         cv.circle(frame, (cx, cy), 10, (255, 0, 0), 5)
-        return
+    # finger tips are at multiples of four
+    def findFingerPosition(self, frame, finger=8,draw=False):
+        if self.result.multi_hand_landmarks:
+            for handLandmark in self.result.multi_hand_landmarks:
+                # itrating on each point on hand
+                for id, landmark in enumerate(handLandmark.landmark):
+                    height,  width, channel = frame.shape
+                    cx, cy = int(landmark.x * width), int(landmark.y * height)
+                    if id == finger:
+                        if draw:
+                            cv.circle(frame, (cx, cy), 10, (255, 0, 0), 5)
+                        return cx, cy
+        return 0, 0
 
 def main():
     #input variables
-    camera_number = 1
+    camera_number = 0
     frame_width = 640
     frame_height = 480
     p_time = 0
@@ -60,23 +65,29 @@ def main():
     capture = cv.VideoCapture(camera_number)
     capture.set(cv.CAP_PROP_FRAME_WIDTH, frame_width)
     capture.set(cv.CAP_PROP_FRAME_HEIGHT, frame_height)
+    hd = HandDetector()
     
     while True:
         _, frame = capture.read()
-        hd = HandDetector();
+        
         hd.findHands(
             frame=frame
         )
+        fx, fy = hd.findFingerPosition(frame,finger=8, draw=True)
+        # print(f'index finger position :: {fx} , {fy} ')
+        
+        fx, fy = hd.findFingerPosition(frame,finger=12, draw=True)
+        # print(f'index finger position :: {fx} , {fy} ')
         
         c_time = time.time()
         fps = 1/(c_time - p_time)
         p_time = c_time
-        
-        cv.putText(frame, f'FPS :: {int(fps)}', (10, 20), cv.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 255, 0), 2)    
+        fpsText = 'FPS' + str(int(fps))
+        cv.putText(frame, fpsText, (10, 20), cv.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 255, 0), 2)    
         cv.imshow('TRACKER' , frame)
         key = cv.waitKey(1)
         if key == 27:
-            break;
+            break
         
     capture.release()
     cv.destroyAllWindows()
